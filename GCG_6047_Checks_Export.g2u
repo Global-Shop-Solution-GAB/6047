@@ -1,0 +1,402 @@
+﻿Program.Sub.ScreenSU.Start
+Gui.F_PreProc..Create
+Gui.F_PreProc..Size(9150,6030)
+Gui.F_PreProc..MinX(7000)
+Gui.F_PreProc..MinY(3000)
+Gui.F_PreProc..Position(0,0)
+Gui.F_PreProc..BackColor(-2147483633)
+Gui.F_PreProc..MousePointer(0)
+Gui.F_PreProc..Event(UnLoad,F_PreProc_UnLoad)
+Gui.F_PreProc..Caption("AP Checks")
+Gui.F_PreProc.frameDate.Create(Frame)
+Gui.F_PreProc.frameDate.Size(3870,735)
+Gui.F_PreProc.frameDate.Position(30,75)
+Gui.F_PreProc.frameDate.Enabled(False)
+Gui.F_PreProc.dtpBegDate.Create(DatePicker)
+Gui.F_PreProc.dtpBegDate.Size(1575,285)
+Gui.F_PreProc.dtpBegDate.Position(105,330)
+Gui.F_PreProc.dtpBegDate.Parent("frameDate")
+Gui.F_PreProc.lblthru.Create(Label,"thru",True,435,255,0,1740,420,True,0,"Arial",8,-2147483633,0)
+Gui.F_PreProc.lblthru.Parent("frameDate")
+Gui.F_PreProc.dtpEndDate.Create(DatePicker)
+Gui.F_PreProc.dtpEndDate.Size(1575,285)
+Gui.F_PreProc.dtpEndDate.Position(2160,330)
+Gui.F_PreProc.dtpEndDate.Parent("frameDate")
+Gui.F_PreProc.optDate.Create(Option)
+Gui.F_PreProc.optDate.Size(960,255)
+Gui.F_PreProc.optDate.Position(105,45)
+Gui.F_PreProc.optDate.Caption("By Date")
+Gui.F_PreProc.optDate.Event(Click,optOption_Click)
+Gui.F_PreProc.frameBatch.Create(Frame)
+Gui.F_PreProc.frameBatch.Size(1515,735)
+Gui.F_PreProc.frameBatch.Position(4005,75)
+Gui.F_PreProc.frameBatch.Enabled(False)
+Gui.F_PreProc.ddlBatch.Create(DropDownList)
+Gui.F_PreProc.ddlBatch.Size(1335,330)
+Gui.F_PreProc.ddlBatch.Position(105,330)
+Gui.F_PreProc.ddlBatch.Parent("frameBatch")
+Gui.F_PreProc.optBatch.Create(Option)
+Gui.F_PreProc.optBatch.Size(1065,255)
+Gui.F_PreProc.optBatch.Position(4080,45)
+Gui.F_PreProc.optBatch.Caption("By Batch")
+Gui.F_PreProc.optBatch.Event(Click,optOption_Click)
+Gui.F_PreProc.cmdRefresh.Create(Button)
+Gui.F_PreProc.cmdRefresh.Size(360,360)
+Gui.F_PreProc.cmdRefresh.Position(5700,300)
+Gui.F_PreProc.cmdRefresh.Caption("Refresh")
+Gui.F_PreProc.cmdRefresh.Event(Click,cmdRefresh_Click)
+Gui.F_PreProc.gsgcChecks.Create(GsGridControl)
+Gui.F_PreProc.gsgcChecks.Size(9060,4290)
+Gui.F_PreProc.gsgcChecks.Position(0,885)
+Gui.F_PreProc.gsgcChecks.Anchor(15)
+Gui.F_PreProc.gsgcChecks.Enabled(False)
+Gui.F_PreProc.cmdExport.Create(Button)
+Gui.F_PreProc.cmdExport.Size(855,375)
+Gui.F_PreProc.cmdExport.Position(165,5265)
+Gui.F_PreProc.cmdExport.Anchor(6)
+Gui.F_PreProc.cmdExport.Caption("Export")
+Gui.F_PreProc.cmdExport.Event(Click,cmdExport_Click)
+Gui.F_PreProc.cmdExport.Enabled(False)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.External.Include.Library("GCG_6047_ErrorHandling.lib")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Author: BixRB
+'Date: 19 July 2020
+'Hoffman Instrumentation Supply
+'GCG_6047_Checks_Export.g2u
+'Export AP Checks over a specific date range
+F.Intrinsic.Control.Try
+
+F.ODBC.Connection!con.OpenCompanyConnection
+'F.Data.Dictionary.CreateFromSQL("dictBatches","con","select distinct rtrim(A.BATCH_NUM), rtrim(A.BATCH_NUM) from V_AP_OPEN_ITEMS A left join (select INVOICE, sum(if(BATCH_CODE = 11, -1 * AMT_TRANSACTION, AMT_TRANSACTION)) as AMT_TOT from V_AP_OPEN_ITEMS group by INVOICE) B on A.INVOICE = B.INVOICE where A.BATCH_CODE = 11 and A.PAY_ACH in ('0', ' ') and B.AMT_TOT <> 0 order by A.BATCH_NUM;")
+F.Data.Dictionary.CreateFromSQL("dictBatches","con","select distinct rtrim(BATCH_NUM), rtrim(BATCH_NUM) from V_AP_OPEN_ITEMS where BATCH_CODE = 11 and PAY_ACH in ('0', ' ') and isnull(CHECK_CODE, '') = '' order by BATCH_NUM;")
+F.ODBC.Connection!con.Close
+F.Data.Dictionary.SetDefaultReturn("dictBatches","***BATCH NOT FOUND***")
+Gui.F_PreProc.ddlBatch.AddItems("Dictionary","dictBatches")
+
+F.Intrinsic.Control.CallSub(LoadScreen)
+
+Gui.F_PreProc..Show
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.CallSub(F_PreProc_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.F_PreProc_UnLoad.Start
+F.Intrinsic.Control.Try
+F.Intrinsic.Control.CallSub(SaveScreen)
+F.Intrinsic.Control.End
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.F_PreProc_UnLoad.End
+
+Program.Sub.SaveScreen.Start
+V.Local.iOption.Declare
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.F_PreProc!optDate.Value)
+	V.Local.iOption.Set(1)
+F.Intrinsic.Control.Else
+	V.Local.iOption.Set(2)
+F.Intrinsic.Control.EndIf
+
+F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,100,False,"Date/Batch ID",False,V.Local.iOption,0,1/1/1900,12:00:00 AM,"")
+F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,200,False,"Start Date",False,0,0,V.Screen.F_PreProc!dtpBegDate.Value,12:00:00 AM,"")
+F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,300,False,"End Date",False,0,0,V.Screen.F_PreProc!dtpEndDate.Value,12:00:00 AM,"")
+F.Global.Registry.AddValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,400,False,V.Screen.F_PreProc!ddlBatch.Text,False,0,0,1/1/1900,12:00:00 AM,"")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.SaveScreen.End
+
+Program.Sub.LoadScreen.Start
+V.Local.sBatch.Declare
+V.Local.iOption.Declare
+V.Local.dDate.Declare
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.BlockEvents
+
+F.Global.Registry.ReadValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,100,1,1,V.Local.iOption)
+F.Intrinsic.Control.SelectCase(V.Local.iOption)
+	F.Intrinsic.Control.Case(1)
+		Gui.F_PreProc.optDate.Value(True)
+		Gui.F_PreProc.frameDate.Enabled(True)
+	F.Intrinsic.Control.Case(2)
+		Gui.F_PreProc.optBatch.Value(True)
+		Gui.F_PreProc.frameBatch.Enabled(True)
+F.Intrinsic.Control.EndSelect
+F.Global.Registry.ReadValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,200,3,V.Ambient.Date,V.Local.dDate)
+Gui.F_PreProc.dtpBegDate.Value(V.Local.dDate)
+F.Global.Registry.ReadValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,300,3,V.Ambient.Date,V.Local.dDate)
+Gui.F_PreProc.dtpEndDate.Value(V.Local.dDate)
+F.Global.Registry.ReadValue(V.Caller.User,V.Caller.CompanyCode,"GCG_6047 OPTION",6047,400,5,"",V.Local.sBatch)
+F.Intrinsic.Control.If(V.Dictionary.dictBatches![V.Local.sBatch],!=,"***BATCH NOT FOUND***")
+	Gui.F_PreProc.ddlBatch.Text(V.Local.sBatch)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.CallSub(F_PreProc_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadScreen.End
+
+Program.Sub.optOption_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.SelectCase(V.Args.ControlName.UCase)
+	F.Intrinsic.Control.Case("OPTDATE")
+		Gui.F_PreProc.frameDate.Enabled(True)
+		Gui.F_PreProc.frameBatch.Enabled(False)
+	F.Intrinsic.Control.Case("OPTBATCH")
+		Gui.F_PreProc.frameBatch.Enabled(True)
+		Gui.F_PreProc.frameDate.Enabled(False)
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.CallSub(F_PreProc_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.optOption_Click.End
+
+Program.Sub.cmdRefresh_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.F_PreProc!optDate.Value,=,False,and,V.Screen.F_PreProc!optBatch.Value,=,False)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.ElseIf(V.Screen.F_PreProc!optDate.Value,=,True,and,V.Screen.F_PreProc!dtpBegDate.Value,>,V.Screen.F_PreProc!dtpEndDate.Value)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.ElseIf(V.Screen.F_PreProc!optBatch.Value,=,True,and,V.Screen.F_PreProc!ddlBatch.Text,=,"")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataTable.dtExport.Exists)
+	F.Data.DataTable.Close("dtExport")
+F.Intrinsic.Control.EndIf
+
+Gui.F_PreProc..Enabled(False)
+F.Intrinsic.Control.BlockEvents
+
+F.Intrinsic.Control.CallSub(LoadDataTable)
+F.Intrinsic.Control.CallSub(SetupGridView)
+
+Gui.F_PreProc.gsgcChecks.Enabled(True)
+Gui.F_PreProc.cmdExport.Enabled(True)
+Gui.F_PreProc..Enabled(True)
+Gui.F_PreProc..SetFocus
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.CallSub(F_PreProc_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdRefresh_Click.End
+
+Program.Sub.cmdExport_Click.Start
+V.Local.sFilePath.Declare
+V.Local.sRef.Declare
+V.Local.sFilter.Declare
+V.Local.iCnt.Declare
+V.Local.iRow.Declare
+V.Local.iCol.Declare
+V.Local.bExists.Declare
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.BlockEvents
+
+F.Automation.MSExcel.CheckPresence(V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists.Not)
+	'No excel
+	F.Intrinsic.UI.Msgbox("Excel is not installed on this machine. Cannot export grid.","EXITING EXPORT MODULE")
+	F.Intrinsic.Control.UnBlockEvents
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+F.Automation.MSExcel.CreateAppObject("oExcel")
+F.Intrinsic.String.Build("{0}AP_Checks_{1}_{2}.xlsx",V.Caller.LocalGSSTempDir,V.Ambient.Date.FormatYYYYMMDD,V.Ambient.Time.FormatHHNNSS,V.Local.sFilePath)
+F.Automation.MSExcel.CreateWorkbook("oExcel","oExport",V.Local.sFilePath)
+F.Automation.MSExcel.OpenWorksheet("oExport","oSheet",1)
+
+V.Local.iCol.Set(0)
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"invoiceID")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"customerVendorID")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"grossInvoiceAmount")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"discountAmount")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"invoiceAmountToPay")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"customerVendorName")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"address_street1")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"address_street2")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"address_city")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"address_stateOrProvince")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"address_zipOrPostalCode")
+F.Automation.MSExcel.WriteCell("oSheet",1,V.Local.iCol.++,"invoiceRef")
+
+'Gui.F_PreProc.gsgcChecks.GetGridviewProperty("gvExport","ActiveFilterString",V.Local.sFilter)
+F.Data.DataView.Create("dtExport","dvExport")
+'F.Data.DataView.SetFilter("dtExport","dvExport",V.Local.sFilter)
+
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataView.dtExport!dvExport.RowCount--,1)
+	F.Intrinsic.Math.Add(V.Local.iCnt,2,V.Local.iRow)
+	V.Local.iCol.Set(0)
+	F.Automation.MSExcel.FormatCell("oSheet",V.Local.iRow,V.Local.iCol.++,"@")
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol,V.DataView.dtExport!dvExport(V.Local.iCnt).INVOICE!FieldVal)
+	F.Automation.MSExcel.FormatCell("oSheet",V.Local.iRow,V.Local.iCol.++,"@")
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol,V.DataView.dtExport!dvExport(V.Local.iCnt).VENDOR!FieldVal)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).AMT_TRANSACTION!FieldValString)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).DISCOUNT_INVOICE!FieldValString)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).AMT_TOT!FieldValString)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).NAME_VENDOR!FieldVal)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).ADDRESS1!FieldVal)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).ADDRESS2!FieldVal)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).CITY!FieldVal)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol.++,V.DataView.dtExport!dvExport(V.Local.iCnt).STATE!FieldVal)
+	F.Automation.MSExcel.FormatCell("oSheet",V.Local.iRow,V.Local.iCol.++,"@")
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol,V.DataView.dtExport!dvExport(V.Local.iCnt).ZIP!FieldVal)
+	F.Automation.MSExcel.FormatCell("oSheet",V.Local.iRow,V.Local.iCol.++,"@")
+	F.Intrinsic.String.Build("{0}{1}",V.DataView.dtExport!dvExport(V.Local.iCnt).CHECK_NUM!FieldVal,V.DataView.dtExport!dvExport(V.Local.iCnt).CHECK_CODE!FieldVal,V.Local.sRef)
+	F.Automation.MSExcel.WriteCell("oSheet",V.Local.iRow,V.Local.iCol,V.Local.sRef)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+F.Data.DataView.Close("dtExport","dvExport")
+
+F.Automation.MSExcel.SaveWorkbook("oExport")
+F.Automation.Generic.DestroyObject("oSheet")
+F.Automation.Generic.DestroyObject("oExport")
+F.Automation.Generic.DestroyObject("oExcel")
+F.Intrinsic.Task.ShellExec(0,"OPEN",V.Local.sFilePath,"","",1)
+
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.CallSub(F_PreProc_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdExport_Click.End
+
+Program.Sub.LoadDataTable.Start
+V.Local.sSQL.Declare
+V.Local.sSQL2.Declare
+V.Local.sOrderBy.Declare
+V.Local.dBegDate.Declare
+V.Local.dEndDate.Declare
+v.Local.dBatchDate.Declare
+F.Intrinsic.Control.Try
+
+F.Data.DataTable.Create("dtExport")
+F.Data.DataTable.Close("dtExport")
+F.ODBC.Connection!con.OpenCompanyConnection
+'V.Local.sSQL.Set("select rtrim(A.INVOICE) as INVOICE, rtrim(A.BATCH_NUM) as BATCH_NUM, A.BATCH_LINE, rtrim(A.CHECK_NUM) as CHECK_NUM, rtrim(A.CHECK_CODE) as CHECK_CODE, A.DATE_CHECK, rtrim(A.VENDOR) as VENDOR, A.AMT_TRANSACTION, rtrim(A.PAYMENT_CURR) as CURR from V_AP_OPEN_ITEMS A left join (select INVOICE, sum(if(BATCH_CODE = 11, -1 * AMT_TRANSACTION, AMT_TRANSACTION)) as AMT_TOT from V_AP_OPEN_ITEMS group by INVOICE) B on A.INVOICE = B.INVOICE where A.BATCH_CODE = 11 and A.PAY_ACH in ('0', ' ') and B.AMT_TOT <> 0")
+V.Local.sSQL.Set("select rtrim(INVOICE) as INVOICE, rtrim(BATCH_NUM) as BATCH_NUM, BATCH_LINE, rtrim(CHECK_NUM) as CHECK_NUM, rtrim(CHECK_CODE) as CHECK_CODE, DATE_CHECK, rtrim(VENDOR) as VENDOR, AMT_TRANSACTION, DISCOUNT_INVOICE, AMT_TRANSACTION - DISCOUNT_INVOICE as AMT_TOT, rtrim(PAYMENT_CURR) as CURR from V_AP_OPEN_ITEMS where BATCH_CODE = 11 and PAY_ACH in ('0', ' ') and isnull(CHECK_CODE, '') = ''")
+F.Intrinsic.Control.If(V.Screen.F_PreProc!optDate.Value)
+	V.Local.dBegDate.Set(V.Screen.F_PreProc!dtpBegDate.Value)
+	V.Local.dEndDate.Set(V.Screen.F_PreProc!dtpEndDate.Value)
+'	F.Intrinsic.String.Build("{0} and A.DATE_CHECK between '{1}' and '{2}';",V.Local.sSQL,V.Local.dBegDate.PervasiveDate,V.Local.dEndDate.PervasiveDate,V.Local.sSQL)
+	F.Intrinsic.String.Build("{0} and DATE_CHECK between '{1}' and '{2}';",V.Local.sSQL,V.Local.dBegDate.PervasiveDate,V.Local.dEndDate.PervasiveDate,V.Local.sSQL)
+	V.Local.sOrderBy.Set("CHECK.DATE_CHECK asc")
+F.Intrinsic.Control.Else
+	'Added DATE_BATCH to the selection so that is does not pull in checks from previous batches that were not purged to history -SS 10/5/21
+	F.Intrinsic.String.Build("Select * from V_AP_OPEN_ITEMS where BATCH_CODE = 11 and PAY_ACH in ('0', ' ') and isnull(CHECK_CODE, '') = '' and BATCH_NUM = '{0}' Order by DATE_BATCH desc",V.Screen.F_PreProc!ddlBatch.Text,V.Local.sSQL2)
+	F.Data.DataTable.CreateFromSQL("dtDate","con",V.Local.sSQL2,True)
+	'F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSQL2,v.Local.dBatchDate)
+	'F.Intrinsic.Control.If(V.Ambient.ExecuteAndReturnEOF)
+	F.Intrinsic.Control.If(V.DataTable.dtDate.RowCount,<,1)
+		'	F.Intrinsic.String.Build("{0} and A.BATCH_NUM = '{1}';",V.Local.sSQL,V.Screen.F_PreProc!ddlBatch.Text,V.Local.sSQL)
+		F.Intrinsic.String.Build("{0} and BATCH_NUM = '{1}';",V.Local.sSQL,V.Screen.F_PreProc!ddlBatch.Text,V.Local.sSQL)
+	f.Intrinsic.Control.Else
+		V.Local.dBatchDate.Set(V.DataTable.dtDate(0).DATE_BATCH!FieldVal)
+		F.Intrinsic.String.Build("{0} and BATCH_NUM = '{1}' and DATE_BATCH = '{2}';",V.Local.sSQL,V.Screen.F_PreProc!ddlBatch.Text,v.Local.dBatchDate.PervasiveDate,V.Local.sSQL)
+	F.Intrinsic.Control.EndIf
+	F.Data.Datatable.Close("dtDate")
+	V.Local.sOrderBy.Set("CHECK.BATCH_NUM asc, CHECK.BATCH_LINE asc")
+F.Intrinsic.Control.EndIf
+
+
+F.Data.DataTable.CreateFromSQL("dtChecks","con",V.Local.sSQL,False)
+F.Data.DataTable.CreateFromSQL("dtVendor","con","select rtrim(VENDOR) as VENDOR, rtrim(NAME_VENDOR_PAY) as NAME_VENDOR, rtrim(ADDRESS1_PAY) as ADDRESS1, rtrim(ADDRESS2_PAY) as ADDRESS2, rtrim(CITY_PAY) as CITY, rtrim(STATE_PAY) as STATE, rtrim(CODE_ZIP_PAY) as ZIP from V_VENDOR_PAY_TO;",False)
+F.ODBC.Connection!con.Close
+
+F.Data.Linq.Join("LeftJoin","DataTable","dtChecks*!*CHECK","DataTable","dtVendor*!*VEND","CHECK.VENDOR = VEND.VENDOR","CHECK.INVOICE*!*CHECK.BATCH_NUM*!*CHECK.BATCH_LINE*!*CHECK.CHECK_NUM*!*CHECK.CHECK_CODE*!*CHECK.DATE_CHECK*!*CHECK.VENDOR*!*VEND.NAME_VENDOR*!*VEND.ADDRESS1*!*VEND.ADDRESS2*!*VEND.CITY*!*VEND.STATE*!*VEND.ZIP*!*CHECK.AMT_TRANSACTION*!*CHECK.DISCOUNT_INVOICE*!*CHECK.AMT_TOT*!*CHECK.CURR","","",V.Local.sOrderBy,"dtExport",True)
+
+F.Data.DataTable.Close("dtChecks")
+F.Data.DataTable.Close("dtVendor")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.CallSub(F_PreProc_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadDataTable.End
+
+Program.Sub.SetupGridView.Start
+F.Intrinsic.Control.Try
+
+Gui.F_PreProc.gsgcChecks.AddGridviewFromDatatable("gvExport","dtExport")
+
+Gui.F_PreProc.gsgcChecks.SetGridviewProperty("gvExport","Editable",False)
+Gui.F_PreProc.gsgcChecks.SetGridviewProperty("gvExport","OptionsViewColumnAutoWidth",False)
+
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","INVOICE","Caption","Invoice No.")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","BATCH_NUM","Caption","Batch ID")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","BATCH_LINE","Caption","Batch Line")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CHECK_NUM","Caption","Check No.")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CHECK_CODE","Caption","Check Code")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","DATE_CHECK","Caption","Check Date")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","VENDOR","Caption","Vendor No.")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","NAME_VENDOR","Caption","Vendor Name")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","ADDRESS1","Caption","Vendor Address 1")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","ADDRESS2","Caption","Vendor Address 2")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CITY","Caption","Vendor Address City")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","STATE","Caption","Vendor Address State")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","ZIP","Caption","Vendor Address ZIP")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","AMT_TRANSACTION","Caption","Gross Amount")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","DISCOUNT_INVOICE","Caption","Discount")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","AMT_TOT","Caption","Amount to Pay")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CURR","Caption","Amount Currency")
+
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","INVOICE","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","BATCH_NUM","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","BATCH_LINE","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CHECK_NUM","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CHECK_CODE","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","DATE_CHECK","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","VENDOR","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","NAME_VENDOR","Width",200)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","ADDRESS1","Width",200)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","ADDRESS2","Width",200)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CITY","Width",125)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","STATE","Width",125)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","ZIP","Width",125)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","AMT_TRANSACTION","Width",95)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","DISCOUNT_INVOICE","Width",80)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","AMT_TOT","Width",105)
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","CURR","Width",125)
+
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","DATE_CHECK","DisplayCustomDateTime","d")
+
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","AMT_TRANSACTION","DisplayCustomNumeric","#,##0.00")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","DISCOUNT_INVOICE","DisplayCustomNumeric","#,##0.00")
+Gui.F_PreProc.gsgcChecks.SetColumnProperty("gvExport","AMT_TOT","DisplayCustomNumeric","#,##0.00")
+
+Gui.F_PreProc.gsgcChecks.MainView("gvExport")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage,"ScriptFile",V.Caller.ScriptFile,"CurrentSubroutine",V.Ambient.CurrentSubroutine)
+	F.Intrinsic.Control.CallSub(F_PreProc_UnLoad)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetupGridView.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$sstanka$}$20211005135241654$}$mP+zz5Tw3sT2/nyap+FbWm4triMPqjXD2M5zratk2+EyweO6V/Vtq9uO2A/S6b5MXdTAC+dEO/k=
+Program.Sub.Comments.End
